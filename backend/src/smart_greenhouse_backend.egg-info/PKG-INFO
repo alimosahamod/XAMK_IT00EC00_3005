@@ -1,0 +1,17 @@
+Metadata-Version: 2.4
+Name: smart-greenhouse-backend
+Version: 0.1.0
+Summary: Smart Greenhouse Backend API
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi
+Requires-Dist: uvicorn[standard]
+Requires-Dist: sqlalchemy>=2.0
+Requires-Dist: psycopg[binary]
+Requires-Dist: alembic
+Requires-Dist: pydantic-settings
+Requires-Dist: scalar-fastapi
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: httpx; extra == "dev"
+Requires-Dist: ruff; extra == "dev"

@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+src/__init__.py
+src/application/__init__.py
+src/domain/__init__.py
+src/infrastructure/__init__.py
+src/interfaces/__init__.py
+src/interfaces/api/__init__.py
+src/smart_greenhouse_backend.egg-info/PKG-INFO
+src/smart_greenhouse_backend.egg-info/SOURCES.txt
+src/smart_greenhouse_backend.egg-info/dependency_links.txt
+src/smart_greenhouse_backend.egg-info/requires.txt
+src/smart_greenhouse_backend.egg-info/top_level.txt

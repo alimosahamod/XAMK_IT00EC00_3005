@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "smart-greenhouse-backend"
+version = "0.1.0"
+description = "Smart Greenhouse Backend API"
+readme = "README.md"
+requires-python = ">=3.11"
+
+# Hier werden die Laufzeitabhängigkeiten definiert:
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "sqlalchemy>=2.0",
+    "psycopg[binary]",
+    "alembic",
+    "pydantic-settings",
+    "scalar-fastapi",
+]
+
+# Zusätzliche Entwicklertools für Schritt 7 (Tests & Linting)
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "httpx",
+    "ruff",
+]
