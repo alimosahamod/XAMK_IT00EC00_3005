@@ -15,6 +15,38 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: greenhouse-backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-greenhouse}:${POSTGRES_PASSWORD:-greenhouse}@postgres:5432/${POSTGRES_DB:-greenhouse}
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      CORS_ORIGINS: http://localhost:5173
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: greenhouse-frontend
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
 
 volumes:
   greenhouse_pgdata:
