@@ -11,6 +11,12 @@ sys.path.insert(0, str(BASE_DIR / "src"))
 
 from infrastructure.settings import settings
 
+# 2. models importieren (nicht nur base!) - erst dadurch fuehrt Python die
+# DeviceRow-Klasse aus und traegt die devices-Tabelle in Base.metadata ein.
+# Ohne diesen Import waere Base.metadata leer und Autogenerate wuerde ein
+# leeres upgrade() erzeugen.
+from infrastructure.persistence import models
+
 # Alembic Config-Objekt
 config = context.config
 
@@ -18,8 +24,8 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# target_metadata bleibt in Phase 1 None (keine ORM-Modelle)
-target_metadata = None
+# target_metadata zeigt jetzt auf die befuellte Base.metadata (devices-Tabelle)
+target_metadata = models.Base.metadata
 
 # Setze die sqlalchemy.url dynamisch aus unseren Settings
 config.set_main_option("sqlalchemy.url", settings.database_url)
