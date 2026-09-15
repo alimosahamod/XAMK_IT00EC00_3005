@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { SensorList } from '../features/sensors/SensorList'
 
 interface Section {
   id: string
@@ -8,18 +9,13 @@ interface Section {
 }
 
 // Stable element ids so later phases can target and fill each section.
+// Sensors is now a real feature, so it is no longer a placeholder here.
 const sections: Section[] = [
   {
     id: 'overview',
     title: 'Overview',
     description: 'At-a-glance greenhouse status and key metrics.',
     phase: 'Later phase',
-  },
-  {
-    id: 'sensors',
-    title: 'Sensors',
-    description: 'Temperature, humidity, soil, and light readings.',
-    phase: 'Phase 2 · Factory Method',
   },
   {
     id: 'controls',
@@ -58,6 +54,7 @@ export function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <SensorList />
         {sections.map((section) => (
           <PlaceholderCard key={section.id} section={section} />
         ))}

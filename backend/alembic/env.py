@@ -4,6 +4,10 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 from alembic import context
+# Erklärung für mich:
+#  models importieren (nicht nur base!) - erst dadurch fuehrt Python die
+# DeviceRow-Klasse aus und traegt die devices-Tabelle in Base.metadata ein.
+from infrastructure.persistence import models
 
 # 1. src/ zum Python-Suchpfad hinzufügen, damit infrastructure.settings importiert werden kann
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -11,11 +15,7 @@ sys.path.insert(0, str(BASE_DIR / "src"))
 
 from infrastructure.settings import settings
 
-# 2. models importieren (nicht nur base!) - erst dadurch fuehrt Python die
-# DeviceRow-Klasse aus und traegt die devices-Tabelle in Base.metadata ein.
-# Ohne diesen Import waere Base.metadata leer und Autogenerate wuerde ein
-# leeres upgrade() erzeugen.
-from infrastructure.persistence import models
+
 
 # Alembic Config-Objekt
 config = context.config
