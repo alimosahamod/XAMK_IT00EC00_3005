@@ -117,4 +117,4 @@ def get_family_factory(family: str) -> DeviceFamilyFactory:
         return _FACTORIES[family]
     except KeyError:
         # Ein unbekannter Name soll nicht unbemerkt zu einem falschen Geräteset führen.
-        raise ValueError("Unknown device family: {family}")
+        raise ValueError(f"Unknown device family: {family}")
