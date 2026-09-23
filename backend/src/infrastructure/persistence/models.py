@@ -36,6 +36,12 @@ class DeviceRow(Base):
         String(32), nullable=False, server_default=text("'sensor'")
     )
 
+    device_family: Mapped[str] = mapped_column(
+    String(32),
+    nullable=False,
+    server_default=text("'simulation'"),
+    )
+
     # display_name: optionales Label vom Nutzer/Creator.
     #String(128), nullable=True -> Mapped[str | None].
     display_name: Mapped[str | None] = mapped_column(
@@ -56,5 +62,9 @@ class DeviceRow(Base):
         TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
     )
 
-    __table_args__ = (Index("ix_devices_role", "role"),)
+    __table_args__ = (
+    Index("ix_devices_role", "role"),
+    Index("ix_devices_family", "device_family"),
+    )
     # (Name kann auch der NAMING_CONVENTION aus base.py ueberlassen werden.)
+
