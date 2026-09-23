@@ -62,6 +62,13 @@ class DeviceRow(Base):
         TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
     )
 
+    """
+    __table_args__ = (backend/alembic/versions/abc123_device_family.py
+    Index("ix_devices_role", "role"),
+    Index("ix_devices_family", "device_family"),
+    )
+    """
+
     __table_args__ = (
     Index("ix_devices_role", "role"),
     Index("ix_devices_family", "device_family"),
