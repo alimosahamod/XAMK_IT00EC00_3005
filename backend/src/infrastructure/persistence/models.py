@@ -1,11 +1,18 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import TIMESTAMP, String, func, text
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, Index, text
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
-from sqlalchemy.sql import func
+from sqlalchemy import (
+    TIMESTAMP,
+    ForeignKey,
+    Index,
+    Numeric,
+    String,
+    func,
+    text,
+)
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from infrastructure.persistence.base import Base
 
@@ -62,6 +69,14 @@ class DeviceRow(Base):
         TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
     )
 
+    # Phase 4: optionale Zuordnung zu einem Standort. Nullable, weil die
+    # Geraete aus Phase 2/3 noch keinen Standort haben und trotzdem gueltig sind.
+    location_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("locations.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     """
     __table_args__ = (backend/alembic/versions/abc123_device_family.py
     Index("ix_devices_role", "role"),
@@ -75,3 +90,63 @@ class DeviceRow(Base):
     )
     # (Name kann auch der NAMING_CONVENTION aus base.py ueberlassen werden.)
 
+
+class LocationRow(Base):
+    """ORM-Zeile fuer einen Standort in der `locations`-Tabelle (Phase 4)."""
+
+    __tablename__ = "locations"
+
+    # Gleiche Konvention wie bei DeviceRow: die DB vergibt die UUID.
+    id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    # Eine Location besitzt ihre Zonen. Loeschen der Location loescht die Zonen,
+    # damit keine Zone ohne Standort zurueckbleibt.
+    zones: Mapped[list["ZoneRow"]] = relationship(
+        back_populates="location",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class ZoneRow(Base):
+    """ORM-Zeile fuer eine Zone; gehoert zu genau einer Location."""
+
+    __tablename__ = "zones"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+
+    # Die Namenskonvention der Aufgabe: location_id, nie greenhouse_id.
+    location_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("locations.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+
+    # Numeric statt Float: die Schwellwerte sind fachliche Grenzen und sollen
+    # nicht durch Binaerrundung verrutschen. Die Domain rechnet mit float.
+    moisture_threshold_low: Mapped[float] = mapped_column(Numeric(5, 4), nullable=False)
+    moisture_threshold_high: Mapped[float] = mapped_column(Numeric(5, 4), nullable=False)
+
+    # Der Zeitplan ist pro Zone frei aufgebaut, deshalb JSONB statt fester Spalten.
+    schedule: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+
+    location: Mapped["LocationRow"] = relationship(back_populates="zones")
+
+    __table_args__ = (
+        # Zonen werden immer ueber ihre Location gelesen.
+        Index("ix_zones_location_id", "location_id"),
+    )

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { LocationConfigWizard } from '../components/config/LocationConfigWizard'
 import { DeviceList } from '../components/devices/DeviceList'
 import { SensorList } from '../features/sensors/SensorList'
 
@@ -10,7 +11,8 @@ interface Section {
 }
 
 // Stable element ids so later phases can target and fill each section.
-// Sensors is now a real feature, so it is no longer a placeholder here.
+// Sensors, devices and configuration are real features now, so they are no
+// longer placeholders here.
 const sections: Section[] = [
   {
     id: 'overview',
@@ -28,12 +30,6 @@ const sections: Section[] = [
     id: 'automation',
     title: 'Automation',
     description: 'Rules that react to sensor readings automatically.',
-    phase: 'Later phase',
-  },
-  {
-    id: 'configuration',
-    title: 'Configuration',
-    description: 'Thresholds, locations, and device settings.',
     phase: 'Later phase',
   },
   {
@@ -57,6 +53,7 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <SensorList />
         <DeviceList />
+        <LocationConfigWizard />
         {sections.map((section) => (
           <PlaceholderCard key={section.id} section={section} />
         ))}

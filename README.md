@@ -77,4 +77,8 @@ PYTHONPATH=src pytest
 
 ## Phase order
 
-See [docs/phases/README.md](docs/phases/README.md) for the full phase sequence. Phase 2 (Factory Method) adds the `devices` table, sensor creators, `/api/sensors`, and fills the **Sensors** dashboard section.
+See [docs/phases/README.md](docs/phases/README.md) for the full phase sequence.
+
+- Phase 2 (Factory Method) adds the `devices` table, sensor creators, `/api/sensors`, and fills the **Sensors** dashboard section.
+- Phase 3 (Abstract Factory) adds device families, `/api/devices`, and the **Devices** dashboard section.
+- Phase 4 (Builder) adds the `locations` and `zones` tables (FK `zones.location_id`), `/api/locations/config`, and the **Configuration** dashboard wizard.

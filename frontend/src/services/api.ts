@@ -88,3 +88,79 @@ export async function provisionDeviceFamily(
   }
   return response.json();
 }
+
+// --- Phase 4: Location config (Builder) ---
+
+// Die Schluessel muessen exakt zum Backend-DTO passen: location_id, nicht greenhouse_id.
+export interface ZoneRequest {
+  name: string;
+  moisture_threshold_low: number;
+  moisture_threshold_high: number;
+  schedule: Record<string, unknown>;
+}
+
+export interface BuildLocationConfigRequest {
+  location_name: string;
+  zones: ZoneRequest[];
+}
+
+export interface LocationDto {
+  id: string;
+  name: string;
+}
+
+export interface ZoneDto {
+  id: string;
+  location_id: string;
+  name: string;
+  moisture_threshold_low: number;
+  moisture_threshold_high: number;
+  schedule: Record<string, unknown>;
+}
+
+export interface LocationConfigDto {
+  location: LocationDto;
+  zones: ZoneDto[];
+}
+
+// Das Backend liefert bei einer ungueltigen Konfiguration ein 400 mit `detail`.
+// Diese Meldung kommt aus dem Builder und wird im UI unveraendert angezeigt.
+async function readErrorDetail(response: Response, fallback: string): Promise<string> {
+  try {
+    const body = await response.json();
+    if (typeof body.detail === 'string') return body.detail;
+    // 422 von Pydantic liefert eine Liste statt eines Strings.
+    if (Array.isArray(body.detail) && body.detail.length > 0) {
+      return body.detail.map((item: { msg?: string }) => item.msg ?? '').join('; ');
+    }
+  } catch {
+    // Antwort ohne JSON-Body: unten den Standardtext verwenden.
+  }
+  return fallback;
+}
+
+export async function createLocationConfig(
+  request: BuildLocationConfigRequest,
+): Promise<LocationConfigDto> {
+  const response = await fetch(`${API_BASE_URL}/api/locations/config`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
+  if (!response.ok) {
+    throw new Error(await readErrorDetail(response, 'Failed to save location config'));
+  }
+  return response.json();
+}
+
+export async function fetchLocationConfig(
+  locationId: string,
+): Promise<LocationConfigDto> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/locations/${encodeURIComponent(locationId)}/config`,
+  );
+  if (!response.ok) {
+    throw new Error(await readErrorDetail(response, 'Failed to load location config'));
+  }
+  return response.json();
+}
