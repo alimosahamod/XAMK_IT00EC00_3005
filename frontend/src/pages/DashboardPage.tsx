@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { DeviceList } from '../components/devices/DeviceList'
 import { SensorList } from '../features/sensors/SensorList'
 
 interface Section {
@@ -55,6 +56,7 @@ export function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <SensorList />
+        <DeviceList />
         {sections.map((section) => (
           <PlaceholderCard key={section.id} section={section} />
         ))}

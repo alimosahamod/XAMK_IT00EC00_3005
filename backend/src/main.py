@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference
 
 from infrastructure.settings import settings
+from interfaces.api.devices import router as devices_router
 from interfaces.api.health import router as health_router
 from interfaces.api.sensors import router as sensors_router
 
@@ -28,6 +29,7 @@ app.add_middleware(
 # 3. Router einbinden
 app.include_router(health_router)
 app.include_router(sensors_router)
+app.include_router(devices_router)
 
 
 # 4. Discovery-Endpunkt auf GET /
