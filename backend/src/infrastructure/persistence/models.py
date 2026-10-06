@@ -150,3 +150,41 @@ class ZoneRow(Base):
         # Zonen werden immer ueber ihre Location gelesen.
         Index("ix_zones_location_id", "location_id"),
     )
+
+
+class ReadingRow(Base):
+    """ORM-Zeile fuer einen gespeicherten Messwert (Phase 5).
+
+    Jeder Lesevorgang fuegt eine neue Zeile ein. So entsteht eine Historie,
+    die spaeter Strategy (Phase 6) und Diagramme nutzen.
+    """
+
+    __tablename__ = "sensor_readings"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+
+    # Messwerte gehoeren zu ihrem Geraet; wird es geloescht, verschwinden sie mit.
+    device_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("devices.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    # asdecimal=False: die Domain rechnet mit float, nicht mit Decimal.
+    value: Mapped[float] = mapped_column(Numeric(12, 4, asdecimal=False), nullable=False)
+    unit: Mapped[str] = mapped_column(String(16), nullable=False)
+    source: Mapped[str] = mapped_column(String(32), nullable=False)
+
+    # Der Zeitpunkt kommt vom Adapter (Messzeit), nicht vom Insert.
+    recorded_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
+
+
+# Index fuer "neuester Wert pro Geraet": erst nach device_id filtern,
+# dann absteigend nach Zeit - die oberste Zeile ist der aktuelle Wert.
+Index(
+    "ix_sensor_readings_device_id_recorded_at",
+    ReadingRow.device_id,
+    ReadingRow.recorded_at.desc(),
+)

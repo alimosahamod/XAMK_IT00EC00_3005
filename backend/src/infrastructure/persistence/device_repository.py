@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -73,6 +75,12 @@ class DeviceRepository:
         stmt = stmt.order_by(DeviceRow.created_at.desc())
         rows = self._db.execute(stmt).scalars().all()
         return [self._to_device(row) for row in rows]
+
+    # --- Phase 5: einzelnes Geraet fuer den Lesevorgang -------------------
+
+    def get_device(self, device_id: UUID) -> Device | None:
+        row = self._db.get(DeviceRow, device_id)
+        return None if row is None else self._to_device(row)
 
     # --- Mapping ----------------------------------------------------------
 

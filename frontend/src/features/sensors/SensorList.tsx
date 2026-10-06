@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createSensor, fetchSensors, type SensorDto } from '../../services/api'
+import { SensorReadingPanel } from './SensorReadingPanel'
 
 export function SensorList() {
   const [sensors, setSensors] = useState<SensorDto[]>([])
@@ -41,7 +42,7 @@ export function SensorList() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Sensors</h2>
         <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-          Phase 2 · Factory Method
+          Phase 2 · Phase 5
         </span>
       </div>
 
@@ -82,6 +83,7 @@ export function SensorList() {
               <div className="mt-1 text-xs text-slate-400">
                 {JSON.stringify(s.default_config)}
               </div>
+              <SensorReadingPanel sensorId={s.id} />
             </div>
           ))
         )}

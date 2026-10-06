@@ -164,3 +164,37 @@ export async function fetchLocationConfig(
   }
   return response.json();
 }
+
+// --- Phase 5: Sensor readings (Adapter) ---
+
+// Gleiche Form fuer jeden Adapter; `source` zeigt, welcher Adapter gelesen hat.
+export interface ReadingDto {
+  device_id: string;
+  value: number;
+  unit: string;
+  source: string;
+  recorded_at: string;
+}
+
+export async function readSensor(sensorId: string): Promise<ReadingDto> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/sensors/${encodeURIComponent(sensorId)}/read`,
+    { method: 'POST' },
+  );
+  if (!response.ok) {
+    throw new Error(await readErrorDetail(response, 'Failed to read sensor'));
+  }
+  return response.json();
+}
+
+// Neuester gespeicherter Wert aus der DB, oder null wenn noch nie gelesen wurde.
+export async function fetchLatestReading(sensorId: string): Promise<ReadingDto | null> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/sensors/${encodeURIComponent(sensorId)}/readings?limit=1`,
+  );
+  if (!response.ok) {
+    throw new Error(await readErrorDetail(response, 'Failed to load readings'));
+  }
+  const readings: ReadingDto[] = await response.json();
+  return readings[0] ?? null;
+}
