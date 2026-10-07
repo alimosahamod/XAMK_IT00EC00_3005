@@ -181,6 +181,47 @@ class ReadingRow(Base):
     recorded_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
 
 
+class AutomationRuleRow(Base):
+    """ORM-Zeile fuer die aktive Automatisierungs-Strategie eines Standorts (Phase 6).
+
+    Eigene Tabelle statt Spalten auf `locations`: die Automatisierung ist ein
+    eigenes Thema, LocationRow bleibt so wie in Phase 4.
+    """
+
+    __tablename__ = "automation_rules"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+
+    # unique=True: hoechstens eine aktive Strategie pro Standort. Wird der
+    # Standort geloescht, ist seine Regel bedeutungslos -> CASCADE.
+    location_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("locations.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+
+    # "conservative" | "aggressive". Gueltige Keys prueft der Code
+    # (get_strategy), nicht die DB - eine dritte Strategie braucht so
+    # keine Migration.
+    strategy_key: Mapped[str] = mapped_column(String(32), nullable=False)
+
+    # Optionale Feineinstellungen der Strategie, deshalb frei als JSONB.
+    parameters: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+
+    # Bei jedem Update neu gesetzt, damit sichtbar ist, wann umgestellt wurde.
+    updated_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+
 # Index fuer "neuester Wert pro Geraet": erst nach device_id filtern,
 # dann absteigend nach Zeit - die oberste Zeile ist der aktuelle Wert.
 Index(
