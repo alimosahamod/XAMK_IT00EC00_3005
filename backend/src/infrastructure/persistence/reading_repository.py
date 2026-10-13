@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from domain.sensors.reading import Reading
-from infrastructure.persistence.models import ReadingRow
+from infrastructure.persistence.models import DeviceRow, ReadingRow
 
 
 class ReadingRepository:
@@ -37,6 +37,21 @@ class ReadingRepository:
         )
         rows = self._db.execute(stmt).scalars().all()
         return [self._to_reading(row) for row in rows]
+
+    def latest_value_for_location(self, location_id: UUID, device_type: str) -> float | None:
+        """Neuester Wert aller Geraete dieses Typs am Standort (Phase 6).
+
+        Nur Geraete mit passender location_id zaehlen. Ein Sensor ohne
+        Standort liefert nie den Wert fuer eine fremde Zone.
+        """
+        stmt = (
+            select(ReadingRow.value)
+            .join(DeviceRow, DeviceRow.id == ReadingRow.device_id)
+            .where(DeviceRow.location_id == location_id, DeviceRow.device_type == device_type)
+            .order_by(ReadingRow.recorded_at.desc())
+            .limit(1)
+        )
+        return self._db.execute(stmt).scalar_one_or_none()
 
     @staticmethod
     def _to_reading(row: ReadingRow) -> Reading:

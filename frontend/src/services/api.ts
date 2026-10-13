@@ -198,3 +198,77 @@ export async function fetchLatestReading(sensorId: string): Promise<ReadingDto |
   const readings: ReadingDto[] = await response.json();
   return readings[0] ?? null;
 }
+
+// --- Phase 6: Automation (Strategy) ---
+
+// strategy_key ist null, solange fuer den Standort keine Strategie gespeichert ist.
+export interface AutomationRuleDto {
+  location_id: string;
+  strategy_key: string | null;
+}
+
+export interface RecommendationDto {
+  location_id: string;
+  strategy_key: string;
+  action: string;
+  reason: string;
+}
+
+// Die Keys kommen vom Backend: eine dritte Strategie braucht keine Frontend-Aenderung.
+export async function fetchStrategyKeys(): Promise<string[]> {
+  const response = await fetch(`${API_BASE_URL}/api/automation/strategies`);
+  if (!response.ok) {
+    throw new Error('Failed to load strategies');
+  }
+  return response.json();
+}
+
+export async function fetchAutomationRule(locationId: string): Promise<AutomationRuleDto> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/locations/${encodeURIComponent(locationId)}/automation`,
+  );
+  if (!response.ok) {
+    throw new Error(await readErrorDetail(response, 'Failed to load automation'));
+  }
+  return response.json();
+}
+
+export async function saveStrategy(
+  locationId: string,
+  strategyKey: string,
+): Promise<AutomationRuleDto> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/locations/${encodeURIComponent(locationId)}/automation`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ strategy_key: strategyKey }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await readErrorDetail(response, 'Failed to save strategy'));
+  }
+  return response.json();
+}
+
+// Evaluate schickt keinen Key mit: das Backend nutzt immer den gespeicherten.
+export async function evaluateAutomation(locationId: string): Promise<RecommendationDto> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/locations/${encodeURIComponent(locationId)}/automation/evaluate`,
+    { method: 'POST' },
+  );
+  if (!response.ok) {
+    throw new Error(await readErrorDetail(response, 'Failed to evaluate'));
+  }
+  return response.json();
+}
+
+export async function linkSensorToLocation(locationId: string, sensorId: string): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/locations/${encodeURIComponent(locationId)}/sensors/${encodeURIComponent(sensorId)}`,
+    { method: 'PUT' },
+  );
+  if (!response.ok) {
+    throw new Error(await readErrorDetail(response, 'Failed to link sensor'));
+  }
+}

@@ -62,3 +62,18 @@ class LocationRepository:
         )
         zone_rows = list(self._db.execute(stmt).scalars().all())
         return location_row, zone_rows
+
+    # --- Phase 6: Daten fuer die Automatisierung --------------------------
+
+    def exists(self, location_id: UUID) -> bool:
+        return self._db.get(LocationRow, location_id) is not None
+
+    def list_zone_thresholds(self, location_id: UUID) -> list[tuple[str, float, float]]:
+        """Name, low und high jeder Zone - nur Zahlen, keine ZoneRow."""
+        stmt = (
+            select(ZoneRow.name, ZoneRow.moisture_threshold_low, ZoneRow.moisture_threshold_high)
+            .where(ZoneRow.location_id == location_id)
+            .order_by(ZoneRow.name)
+        )
+        # Numeric liefert Decimal, die Domain rechnet mit float.
+        return [(name, float(low), float(high)) for name, low, high in self._db.execute(stmt)]

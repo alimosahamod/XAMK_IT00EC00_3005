@@ -82,6 +82,13 @@ class DeviceRepository:
         row = self._db.get(DeviceRow, device_id)
         return None if row is None else self._to_device(row)
 
+    # --- Phase 6: Sensor einem Standort zuordnen --------------------------
+
+    def assign_location(self, device_id: UUID, location_id: UUID) -> None:
+        row = self._db.get(DeviceRow, device_id)
+        row.location_id = location_id
+        self._db.commit()
+
     # --- Mapping ----------------------------------------------------------
 
     @staticmethod
