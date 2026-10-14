@@ -77,3 +77,9 @@ class LocationRepository:
         )
         # Numeric liefert Decimal, die Domain rechnet mit float.
         return [(name, float(low), float(high)) for name, low, high in self._db.execute(stmt)]
+
+    # --- Phase 7: Daten fuer die Overview
+
+    def get_name(self, location_id: UUID) -> str | None:
+        stmt = select(LocationRow.name).where(LocationRow.id == location_id)
+        return self._db.execute(stmt).scalar_one_or_none()

@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from domain.devices.entity import Device
@@ -88,6 +88,21 @@ class DeviceRepository:
         row = self._db.get(DeviceRow, device_id)
         row.location_id = location_id
         self._db.commit()
+
+    #  Phase 7: Zaehlung fuer die Overview
+
+    def count_by_role(self, location_id: UUID) -> dict[str, int]:
+        """Anzahl der Geraete am Standort pro Rolle, z.B. {"sensor": 2}.
+
+        Eine GROUP BY-Abfrage statt alle Geraete zu laden und in Python zu zaehlen.
+        Rollen ohne Geraete fehlen im Ergebnis.
+        """
+        stmt = (
+            select(DeviceRow.role, func.count())
+            .where(DeviceRow.location_id == location_id)
+            .group_by(DeviceRow.role)
+        )
+        return {role: count for role, count in self._db.execute(stmt)}
 
     # --- Mapping ----------------------------------------------------------
 

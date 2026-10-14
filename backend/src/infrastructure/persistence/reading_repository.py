@@ -1,7 +1,8 @@
 from uuid import UUID
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.dialects.postgresql import distinct_on
+from sqlalchemy.orm import Session, aliased
 
 from domain.sensors.reading import Reading
 from infrastructure.persistence.models import DeviceRow, ReadingRow
@@ -39,11 +40,7 @@ class ReadingRepository:
         return [self._to_reading(row) for row in rows]
 
     def latest_value_for_location(self, location_id: UUID, device_type: str) -> float | None:
-        """Neuester Wert aller Geraete dieses Typs am Standort (Phase 6).
 
-        Nur Geraete mit passender location_id zaehlen. Ein Sensor ohne
-        Standort liefert nie den Wert fuer eine fremde Zone.
-        """
         stmt = (
             select(ReadingRow.value)
             .join(DeviceRow, DeviceRow.id == ReadingRow.device_id)
@@ -52,6 +49,22 @@ class ReadingRepository:
             .limit(1)
         )
         return self._db.execute(stmt).scalar_one_or_none()
+
+    def latest_per_device_for_location(self, location_id: UUID) -> list[Reading]:
+
+        latest = (
+            select(ReadingRow)
+            .join(DeviceRow, DeviceRow.id == ReadingRow.device_id)
+            .where(DeviceRow.location_id == location_id)
+            .ext(distinct_on(ReadingRow.device_id))
+            .order_by(ReadingRow.device_id, ReadingRow.recorded_at.desc())
+        ).subquery()
+        # DISTINCT ON erzwingt die Sortierung nach device_id; fuer die Anzeige
+        # wird aussen noch einmal nach Zeit sortiert.
+        newest = aliased(ReadingRow, latest)
+        stmt = select(newest).order_by(newest.recorded_at.desc())
+        rows = self._db.execute(stmt).scalars().all()
+        return [self._to_reading(row) for row in rows]
 
     @staticmethod
     def _to_reading(row: ReadingRow) -> Reading:
