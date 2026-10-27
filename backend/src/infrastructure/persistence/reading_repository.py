@@ -51,7 +51,11 @@ class ReadingRepository:
         return self._db.execute(stmt).scalar_one_or_none()
 
     def latest_per_device_for_location(self, location_id: UUID) -> list[Reading]:
+        #Neuester Messwert jedes Geraets am Standort, neueste zuerst (Phase 7).
 
+        # Eine Abfrage fuer alle Geraete statt einer pro Geraet (kein N+1): 
+        # DISTINCT ON (device_id) behaelt pro Geraet nur die erste Zeile nach recorded_at DESC - passt zum Index (device_id, recorded_at DESC).
+        
         latest = (
             select(ReadingRow)
             .join(DeviceRow, DeviceRow.id == ReadingRow.device_id)

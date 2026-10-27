@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { StrategyPanel } from '../components/automation/StrategyPanel'
 import { LocationConfigWizard } from '../components/config/LocationConfigWizard'
 import { DeviceList } from '../components/devices/DeviceList'
+import { OverviewPanel } from '../components/overview/OverviewPanel'
 import { SensorList } from '../features/sensors/SensorList'
 
 interface Section {
@@ -12,15 +13,9 @@ interface Section {
 }
 
 // Stable element ids so later phases can target and fill each section.
-// Sensors, devices, configuration and automation are real features now, so they are no
+// Overview, sensors, devices, configuration and automation are real features now, so they are no
 // longer placeholders here.
 const sections: Section[] = [
-  {
-    id: 'overview',
-    title: 'Overview',
-    description: 'At-a-glance greenhouse status and key metrics.',
-    phase: 'Later phase',
-  },
   {
     id: 'controls',
     title: 'Controls',
@@ -46,6 +41,7 @@ export function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <OverviewPanel />
         <SensorList />
         <DeviceList />
         <LocationConfigWizard />

@@ -272,3 +272,27 @@ export async function linkSensorToLocation(locationId: string, sensorId: string)
     throw new Error(await readErrorDetail(response, 'Failed to link sensor'));
   }
 }
+
+// Phase 7: ein Aufruf liefert die ganze Standort-Uebersicht (Facade im Backend).
+export interface LocationOverviewDto {
+  location: { id: string; name: string };
+  device_counts: { sensor: number; actuator: number };
+  latest_readings: {
+    device_id: string;
+    value: number;
+    unit: string;
+    recorded_at: string;
+  }[];
+  strategy_key: string | null;
+  last_recommendation: { action: string; reason: string } | null;
+}
+
+export async function fetchOverview(locationId: string): Promise<LocationOverviewDto> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/locations/${encodeURIComponent(locationId)}/overview`,
+  );
+  if (!response.ok) {
+    throw new Error(await readErrorDetail(response, 'Failed to load overview'));
+  }
+  return response.json();
+}
