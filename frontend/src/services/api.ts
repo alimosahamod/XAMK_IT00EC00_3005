@@ -56,6 +56,9 @@ export interface DeviceDto {
   device_family: string;
   display_name: string;
   default_config: Record<string, unknown>;
+  // Phase 8: nur bei Aktuatoren gesetzt, bei Sensoren null bzw. [].
+  state: ActuatorState | null;
+  allowed_commands: string[];
 }
 
 export async function fetchDevices(filters: {
@@ -85,6 +88,29 @@ export async function provisionDeviceFamily(
   );
   if (!response.ok) {
     throw new Error('Failed to provision device family');
+  }
+  return response.json();
+}
+
+// --- Phase 8: Actuator state (State) ---
+
+export type ActuatorState = 'off' | 'idle' | 'running' | 'error' | 'maintenance';
+
+// Das Backend prueft den Wechsel. Ein illegaler Wechsel kommt als 409 mit `detail` zurueck.
+export async function transitionActuator(
+  deviceId: string,
+  target: ActuatorState,
+): Promise<DeviceDto> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/devices/${encodeURIComponent(deviceId)}/transition`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await readErrorDetail(response, 'Failed to change state'));
   }
   return response.json();
 }

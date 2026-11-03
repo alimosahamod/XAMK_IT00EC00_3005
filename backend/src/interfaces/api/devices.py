@@ -1,10 +1,16 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from application.devices.dto import DeviceDto
+from application.devices.dto import DeviceDto, TransitionRequestDto
 from application.devices.family_service import DeviceFamilyService
-from application.devices.mappers import devices_to_dtos
+from application.devices.mappers import device_to_dto, devices_to_dtos
+from application.devices.state_service import ActuatorStateService
+from domain.actuators.errors import IllegalTransitionError
+from domain.devices.errors import DeviceNotFoundError
 from infrastructure.db import get_db
+from infrastructure.persistence.actuator_state_repository import ActuatorStateRepository
 from infrastructure.persistence.device_repository import DeviceRepository
 
 router = APIRouter(prefix="/api/devices", tags=["devices"])
@@ -12,6 +18,10 @@ router = APIRouter(prefix="/api/devices", tags=["devices"])
 
 def get_service(db: Session = Depends(get_db)) -> DeviceFamilyService:
     return DeviceFamilyService(DeviceRepository(db))
+
+
+def get_state_service(db: Session = Depends(get_db)) -> ActuatorStateService:
+    return ActuatorStateService(DeviceRepository(db), ActuatorStateRepository(db))
 
 
 @router.get("", response_model=list[DeviceDto])
@@ -37,3 +47,28 @@ def provision_family(
         # Unbekannte Familie wird in der Domain abgelehnt -> 400.
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
     return devices_to_dtos(devices)
+
+
+@router.post(
+    "/{device_id}/transition",
+    response_model=DeviceDto,
+    responses={
+        404: {"description": "Actuator not found"},
+        409: {"description": "Transition not allowed from the current state"},
+    },
+)
+def transition_actuator(
+    device_id: UUID,
+    body: TransitionRequestDto,
+    service: ActuatorStateService = Depends(get_state_service),
+) -> DeviceDto:
+    """Wechselt den Zustand eines Aktuators (Demo; ab Phase 10 ueber Command).
+
+    Der Router kennt keine Uebergangsregeln, er uebersetzt nur Domain-Fehler in HTTP.
+    """
+    try:
+        return device_to_dto(service.transition(device_id, body.target))
+    except DeviceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    except IllegalTransitionError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))

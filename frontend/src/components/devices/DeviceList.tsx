@@ -5,6 +5,7 @@ import {
   type DeviceDto,
   type DeviceFamily,
 } from '../../services/api'
+import { ActuatorStateControl, StateBadge } from './ActuatorStateControl'
 import { DeviceFamilySwitcher } from './DeviceFamilySwitcher'
 
 export function DeviceList() {
@@ -33,6 +34,11 @@ export function DeviceList() {
     }
   }, [family])
 
+  // Nach einem erfolgreichen Wechsel nur dieses eine Geraet in der Liste ersetzen.
+  function replaceDevice(updated: DeviceDto) {
+    setDevices((current) => current.map((d) => (d.id === updated.id ? updated : d)))
+  }
+
   async function handleProvision() {
     setError(null)
     try {
@@ -52,7 +58,7 @@ export function DeviceList() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Devices</h2>
         <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-          Phase 3 · Abstract Factory
+          Phase 3 · Abstract Factory · Phase 8 · State
         </span>
       </div>
 
@@ -86,6 +92,7 @@ export function DeviceList() {
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium">{device.display_name}</span>
                 <span className="flex gap-1">
+                  <StateBadge device={device} />
                   <RoleBadge role={device.role} />
                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                     {device.device_family}
@@ -96,6 +103,9 @@ export function DeviceList() {
               <div className="mt-1 text-xs text-slate-400">
                 {JSON.stringify(device.default_config)}
               </div>
+              {device.role === 'actuator' && (
+                <ActuatorStateControl device={device} onChange={replaceDevice} />
+              )}
             </div>
           ))
         )}

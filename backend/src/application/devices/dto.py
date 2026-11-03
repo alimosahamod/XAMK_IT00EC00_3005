@@ -1,7 +1,7 @@
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class DeviceDto(BaseModel):
@@ -18,3 +18,15 @@ class DeviceDto(BaseModel):
     device_family: str
     display_name: str
     default_config: dict
+    # Phase 8: nur bei Aktuatoren gesetzt. allowed_commands beantwortet
+    # "was darf ich jetzt tun?", damit das UI nicht selbst raten muss.
+    state: str | None = Field(
+        default=None, description="off | idle | running | error | maintenance (null for sensors)"
+    )
+    allowed_commands: list[str] = []
+
+
+class TransitionRequestDto(BaseModel):
+    """Body fuer POST /api/devices/{id}/transition (Demo bis Phase 10 Command)."""
+
+    target: str = Field(description="Target state, e.g. running", examples=["running"])

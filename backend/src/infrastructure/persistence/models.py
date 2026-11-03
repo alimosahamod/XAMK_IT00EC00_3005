@@ -77,6 +77,15 @@ class DeviceRow(Base):
         nullable=True,
     )
 
+    # Phase 8: Zustand des Aktuators (Sensoren haben keine Zeile).
+    # lazy="selectin": die Geraeteliste laedt alle Zustaende mit einer
+    # zusaetzlichen Abfrage statt einer Abfrage pro Geraet (kein N+1).
+    actuator_state: Mapped["ActuatorStateRow | None"] = relationship(
+        lazy="selectin",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
     """
     __table_args__ = (backend/alembic/versions/abc123_device_family.py
     Index("ix_devices_role", "role"),
@@ -214,6 +223,34 @@ class AutomationRuleRow(Base):
     )
 
     # Bei jedem Update neu gesetzt, damit sichtbar ist, wann umgestellt wurde.
+    updated_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+
+class ActuatorStateRow(Base):
+    """ORM-Zeile fuer den aktuellen Zustand eines Aktuators (Phase 8).
+
+    Eine Zeile pro Aktuator, deshalb ist device_id zugleich der Primary Key.
+    Welche Zustaende und Wechsel gueltig sind, prueft die Domain, nicht die DB.
+    """
+
+    __tablename__ = "actuator_states"
+
+    device_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("devices.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+    # "off" | "idle" | "running" | "error" | "maintenance"
+    state: Mapped[str] = mapped_column(
+        String(32), nullable=False, server_default=text("'idle'")
+    )
+
     updated_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True),
         nullable=False,

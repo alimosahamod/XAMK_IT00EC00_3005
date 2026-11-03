@@ -3,9 +3,10 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from domain.actuators.state import INITIAL_STATE
 from domain.devices.entity import Device
 from domain.sensors.entity import Sensor
-from infrastructure.persistence.models import DeviceRow
+from infrastructure.persistence.models import ActuatorStateRow, DeviceRow
 
 # Phase 2 Sensoren hatten noch keine Familie. Damit alte und neue Zeilen
 # konsistent bleiben, bekommt der Sensor-Pfad diese Standardfamilie.
@@ -108,13 +109,18 @@ class DeviceRepository:
 
     @staticmethod
     def _to_row(device: Device) -> DeviceRow:
-        return DeviceRow(
+        row = DeviceRow(
             device_type=device.device_type,
             role=device.role,
             device_family=device.device_family,
             display_name=device.display_name,
             default_config=device.default_config,
         )
+        # Phase 8: ein neuer Aktuator bekommt sofort seine Zustandszeile,
+        # im selben Commit wie das Geraet selbst.
+        if device.role == "actuator":
+            row.actuator_state = ActuatorStateRow(state=INITIAL_STATE)
+        return row
 
     @staticmethod
     def _to_device(row: DeviceRow) -> Device:
@@ -126,6 +132,7 @@ class DeviceRepository:
             # Die Spalte erlaubt NULL, das Domain-Device verlangt einen Namen.
             display_name=row.display_name or row.device_type,
             default_config=row.default_config,
+            state=row.actuator_state.state if row.actuator_state else None,
         )
 
     @staticmethod

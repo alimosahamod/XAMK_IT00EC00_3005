@@ -12,4 +12,6 @@ class Device:
     device_family: str
     display_name: str 
     default_config: dict
+    # Phase 8: gespeicherter Zustand aus actuator_states, bei Sensoren None.
+    state: str | None = None
     #created_at: str  #Zeitstempel
