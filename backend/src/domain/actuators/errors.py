@@ -11,3 +11,14 @@ class IllegalTransitionError(ValueError):
             f"Illegal transition {current} -> {target}. "
             f"Allowed from {current}: {', '.join(allowed) or 'none'}"
         )
+
+
+class PolicyViolationError(Exception):
+    """Ein Decorator (z.B. maxRunTime) hat den Befehl blockiert.
+
+    `policy` ist der Name der Policy, damit das Log sie speichern kann.
+    """
+
+    def __init__(self, policy: str, message: str):
+        self.policy = policy
+        super().__init__(message)

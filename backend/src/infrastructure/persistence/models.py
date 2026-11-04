@@ -3,10 +3,12 @@ from datetime import datetime
 
 from sqlalchemy import (
     TIMESTAMP,
+    Boolean,
     ForeignKey,
     Index,
     Numeric,
     String,
+    Text,
     func,
     text,
 )
@@ -256,6 +258,46 @@ class ActuatorStateRow(Base):
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
+    )
+
+
+class ActuatorExecutionLogRow(Base):
+    """ORM-Zeile fuer jeden Versuch, einen Aktuator auszufuehren (Phase 9).
+
+    Der Logging-Decorator schreibt pro apply() genau eine Zeile -
+    egal ob der Versuch geklappt hat oder von einer Policy blockiert wurde.
+    """
+
+    __tablename__ = "actuator_execution_log"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+
+    # Wird das Geraet geloescht, ist sein Log bedeutungslos -> CASCADE.
+    device_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("devices.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    success: Mapped[bool] = mapped_column(Boolean, nullable=False)
+
+    # Liste der Policies, die gegriffen haben, z.B. ["maxRunTime", "logging"].
+    policy_applied: Mapped[list[str]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'[]'::jsonb")
+    )
+
+    # Optional: Fehlertext, z.B. "Max run time exceeded".
+    message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (
+        # Die UI liest immer die neuesten Eintraege zuerst.
+        Index("ix_actuator_execution_log_created_at", "created_at"),
     )
 
 

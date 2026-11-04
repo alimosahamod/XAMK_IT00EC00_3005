@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -27,3 +28,10 @@ class ActuatorStateRepository:
         else:
             row.state = state  # updated_at setzt onupdate automatisch
         self._db.commit()
+
+    def get_running_since(self, device_id: UUID) -> datetime | None:
+        # Nur relevant fuer laufende Aktuatoren: seit dem letzten Wechsel auf "running".
+        row = self._db.get(ActuatorStateRow, device_id)
+        if row is None or row.state != "running":
+            return None
+        return row.updated_at

@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     api_host: str = "127.0.0.1"
     api_port: int = 8000
     cors_origins: str = "http://localhost:5173"
+    # Phase 9: wie lange ein Aktuator hoechstens "running" sein darf (Sekunden).
+    actuator_max_run_time_s: int = 1800
 
     # Konfiguration: Wo liegt die .env-Datei und wie soll sie gelesen werden?
     model_config = SettingsConfigDict(
