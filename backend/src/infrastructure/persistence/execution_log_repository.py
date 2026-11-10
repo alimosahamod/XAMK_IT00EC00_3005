@@ -1,12 +1,13 @@
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from infrastructure.persistence.models import ActuatorExecutionLogRow
 
 
 class ExecutionLogRepository:
-    """Schreibt Ausfuehrungsversuche in `actuator_execution_log`."""
+    """Schreibt und liest Ausfuehrungsversuche in `actuator_execution_log`."""
 
     def __init__(self, db: Session):
         self._db = db
@@ -21,3 +22,12 @@ class ExecutionLogRepository:
             )
         )
         self._db.commit()
+
+    def list_recent(self, limit: int = 20) -> list[ActuatorExecutionLogRow]:
+        # Neueste Versuche zuerst - so zeigt das Dashboard das Log an.
+        query = (
+            select(ActuatorExecutionLogRow)
+            .order_by(ActuatorExecutionLogRow.created_at.desc())
+            .limit(limit)
+        )
+        return list(self._db.scalars(query))

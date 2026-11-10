@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { ExecutionLog } from '../components/actuators/ExecutionLog'
 import { StrategyPanel } from '../components/automation/StrategyPanel'
 import { LocationConfigWizard } from '../components/config/LocationConfigWizard'
 import { DeviceList } from '../components/devices/DeviceList'
@@ -13,15 +14,9 @@ interface Section {
 }
 
 // Stable element ids so later phases can target and fill each section.
-// Overview, sensors, devices, configuration and automation are real features now, so they are no
-// longer placeholders here.
+// Overview, sensors, devices, configuration, automation and controls (execution log) are real
+// features now, so they are no longer placeholders here.
 const sections: Section[] = [
-  {
-    id: 'controls',
-    title: 'Controls',
-    description: 'Manual actuators: fans, pumps, vents, and lamps.',
-    phase: 'Later phase',
-  },
   {
     id: 'events',
     title: 'Events',
@@ -46,6 +41,7 @@ export function DashboardPage() {
         <DeviceList />
         <LocationConfigWizard />
         <StrategyPanel />
+        <ExecutionLog />
         {sections.map((section) => (
           <PlaceholderCard key={section.id} section={section} />
         ))}

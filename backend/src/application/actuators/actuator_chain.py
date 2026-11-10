@@ -12,14 +12,7 @@ from infrastructure.settings import settings
 
 
 def build_actuator(db: Session) -> ActuatorPort:
-    """Composition Root: baut den Decorator-Stapel an genau einer Stelle.
-
-    Reihenfolge (von aussen nach innen):
-        LoggingActuatorDecorator -> MaxRunTimeActuatorDecorator -> SimulationActuatorAdapter
-
-    Logging ist aussen, damit es auch blockierte Versuche sieht.
-    Der Aufrufer bekommt nur einen ActuatorPort und kennt die Schichten nicht.
-    """
+    """Builds the actuator chain."""
     actuator: ActuatorPort = SimulationActuatorAdapter()
     actuator = MaxRunTimeActuatorDecorator(
         actuator,

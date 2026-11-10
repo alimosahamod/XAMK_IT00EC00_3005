@@ -322,3 +322,43 @@ export async function fetchOverview(locationId: string): Promise<LocationOvervie
   }
   return response.json();
 }
+
+// --- Phase 9: Actuator execution log (Decorator) ---
+
+// Eine Zeile aus actuator_execution_log. policy_applied listet die Decorator-Schichten.
+export interface ExecutionDto {
+  id: string;
+  device_id: string;
+  success: boolean;
+  policy_applied: string[];
+  message: string | null;
+  created_at: string;
+}
+
+export async function fetchExecutions(limit = 20): Promise<ExecutionDto[]> {
+  const response = await fetch(`${API_BASE_URL}/api/actuators/executions?limit=${limit}`);
+  if (!response.ok) {
+    throw new Error(await readErrorDetail(response, 'Failed to load executions'));
+  }
+  return response.json();
+}
+
+// Demo bis Phase 10: der Befehl laeuft durch den Decorator-Stapel im Backend.
+// Blockiert eine Policy, kommt ein 409 mit `detail` zurueck (die Log-Zeile existiert trotzdem).
+export async function applyActuatorCommand(
+  deviceId: string,
+  command: string,
+  payload: Record<string, unknown> = {},
+): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/actuators/${encodeURIComponent(deviceId)}/apply`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command, payload }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await readErrorDetail(response, 'Failed to apply command'));
+  }
+}
