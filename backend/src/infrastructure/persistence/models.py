@@ -301,6 +301,50 @@ class ActuatorExecutionLogRow(Base):
     )
 
 
+class CommandLogRow(Base):
+    """ORM-Zeile fuer jeden Befehl, der ueber den Invoker lief (Phase 10, Command).
+
+    Audit-Trail: auch abgelehnte (`rejected`) und fehlgeschlagene (`failed`)
+    Befehle bekommen eine Zeile, nicht nur erfolgreiche.
+    """
+
+    __tablename__ = "command_log"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+
+    # Fachlicher Befehlsname, z.B. "start_pump", "stop_pump", "set_light_level".
+    command_type: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    # Wird das Geraet geloescht, ist sein Befehlsverlauf bedeutungslos -> CASCADE.
+    device_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("devices.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    # Parameter des Befehls, z.B. {"level": 70}. Je Befehl verschieden -> JSONB.
+    payload: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+
+    # "success" | "failed" | "rejected". Gueltige Werte prueft der Code, nicht die DB.
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+
+    # Nur bei failed/rejected gesetzt, z.B. "Max run time exceeded".
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (
+        # Die Historie wird immer "neueste zuerst" gelesen.
+        Index("ix_command_log_created_at", "created_at"),
+    )
+
+
 # Index fuer "neuester Wert pro Geraet": erst nach device_id filtern,
 # dann absteigend nach Zeit - die oberste Zeile ist der aktuelle Wert.
 Index(
