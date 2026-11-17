@@ -343,22 +343,47 @@ export async function fetchExecutions(limit = 20): Promise<ExecutionDto[]> {
   return response.json();
 }
 
-// Demo bis Phase 10: der Befehl laeuft durch den Decorator-Stapel im Backend.
-// Blockiert eine Policy, kommt ein 409 mit `detail` zurueck (die Log-Zeile existiert trotzdem).
-export async function applyActuatorCommand(
+// --- Phase 10: Commands (Command) ---
+
+export type CommandType = 'start_pump' | 'stop_pump' | 'set_light_level' | 'switch_off_light';
+export type CommandStatus = 'success' | 'failed' | 'rejected';
+
+// Antwort von POST /api/commands. Auch rejected/failed kommen als 200 mit `status` zurueck.
+export interface CommandResultDto {
+  command_type: string;
+  device_id: string;
+  payload: Record<string, unknown>;
+  status: CommandStatus;
+  error_message: string | null;
+}
+
+// Eine Zeile aus command_log (GET /api/commands, neueste zuerst).
+export interface CommandLogDto extends CommandResultDto {
+  id: string;
+  created_at: string;
+}
+
+// Das Backend baut daraus ein Command-Objekt und fuehrt es ueber den Invoker aus.
+export async function submitCommand(
+  commandType: CommandType,
   deviceId: string,
-  command: string,
   payload: Record<string, unknown> = {},
-): Promise<void> {
-  const response = await fetch(
-    `${API_BASE_URL}/api/actuators/${encodeURIComponent(deviceId)}/apply`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ command, payload }),
-    },
-  );
+): Promise<CommandResultDto> {
+  const response = await fetch(`${API_BASE_URL}/api/commands`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ command_type: commandType, device_id: deviceId, payload }),
+  });
   if (!response.ok) {
-    throw new Error(await readErrorDetail(response, 'Failed to apply command'));
+    throw new Error(await readErrorDetail(response, 'Failed to send command'));
   }
+  return response.json();
+}
+
+export async function fetchCommands(limit = 50): Promise<CommandLogDto[]> {
+  const response = await fetch(`${API_BASE_URL}/api/commands?limit=${limit}`);
+  if (!response.ok) {
+    throw new Error(await readErrorDetail(response, 'Failed to load command history'));
+  }
+  return response.json();
 }

@@ -9,7 +9,7 @@ from application.commands.service import CommandService
 from domain.actuators.errors import PolicyViolationError
 from domain.commands.errors import InvalidCommandError
 from domain.commands.invoker import CommandInvoker
-from domain.commands.light import SetLightLevelCommand
+from domain.commands.light import SetLightLevelCommand, SwitchOffLightCommand
 from domain.commands.pump import StartPumpCommand, StopPumpCommand
 from domain.commands.registry import create_command
 from infrastructure.adapters.actuators.simulation import SimulationActuatorAdapter
@@ -99,6 +99,20 @@ def test_set_light_level_rejected_in_error_state():
     result, states, _, _ = run(SetLightLevelCommand, "error", {"level": 30})
     assert result.status == "rejected"
     assert states.state == "error"
+
+
+def test_switch_off_light_from_running_goes_idle():
+    result, states, port, _ = run(SwitchOffLightCommand, "running")
+    assert result.status == "success"
+    assert states.state == "idle"
+    assert [a.command for a in port.applied] == ["off"]
+
+
+def test_switch_off_light_rejected_when_already_idle():
+    result, states, port, _ = run(SwitchOffLightCommand, "idle")
+    assert result.status == "rejected"
+    assert states.state == "idle"
+    assert port.applied == []
 
 
 @pytest.mark.parametrize("payload", [{}, {"level": 101}, {"level": "high"}, {"level": True}])

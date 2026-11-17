@@ -13,6 +13,7 @@ from main import app
 
 # Integrationstest gegen die echte Postgres-DB: der echte Decorator-Stapel aus
 # build_actuator() schreibt in actuator_execution_log. Alles wird am Ende zurueckgerollt.
+# Seit Phase 10 erreicht man den Stapel nur noch ueber POST /api/commands.
 
 
 @pytest.fixture
@@ -54,12 +55,16 @@ def log_rows(db, device_id) -> list[ActuatorExecutionLogRow]:
     return list(db.scalars(select(ActuatorExecutionLogRow).where(ActuatorExecutionLogRow.device_id == device_id)))
 
 
+def send(client, device_id, command_type: str):
+    return client.post("/api/commands", json={"command_type": command_type, "device_id": device_id})
+
+
 def test_allowed_apply_inserts_success_row(client, db):
     actuator = new_actuator(client)
 
-    response = client.post(f"/api/actuators/{actuator['id']}/apply", json={"command": "on"})
+    response = send(client, actuator["id"], "start_pump")
 
-    assert response.status_code == 204
+    assert response.json()["status"] == "success"
     rows = log_rows(db, actuator["id"])
     assert len(rows) == 1
     assert rows[0].success is True
@@ -71,10 +76,11 @@ def test_blocked_apply_inserts_failed_row_and_is_listed(client, db):
     actuator = new_actuator(client)
     force_running_for(db, actuator["id"], timedelta(hours=2))
 
-    response = client.post(f"/api/actuators/{actuator['id']}/apply", json={"command": "on"})
+    # stop ist im Zustand running erlaubt -> der Befehl erreicht den Decorator, der blockiert.
+    response = send(client, actuator["id"], "stop_pump")
 
-    assert response.status_code == 409
-    assert response.json()["detail"] == "Max run time exceeded"
+    assert response.json()["status"] == "failed"
+    assert response.json()["error_message"] == "Max run time exceeded"
     # Die Zeile steht in der Tabelle, obwohl der Befehl blockiert wurde.
     rows = log_rows(db, actuator["id"])
     assert [(r.success, r.policy_applied, r.message) for r in rows] == [
@@ -90,8 +96,8 @@ def test_blocked_apply_inserts_failed_row_and_is_listed(client, db):
 
 def test_executions_are_newest_first_and_limited(client, db):
     actuator = new_actuator(client)
-    for _ in range(3):
-        client.post(f"/api/actuators/{actuator['id']}/apply", json={"command": "on"})
+    for command_type in ("start_pump", "stop_pump", "start_pump"):
+        send(client, actuator["id"], command_type)
 
     listed = client.get("/api/actuators/executions?limit=2").json()
 
@@ -102,7 +108,7 @@ def test_executions_are_newest_first_and_limited(client, db):
 def test_unknown_device_returns_404_without_log_row(client, db):
     before = db.scalar(select(func.count()).select_from(ActuatorExecutionLogRow))
 
-    response = client.post(f"/api/actuators/{uuid4()}/apply", json={"command": "on"})
+    response = send(client, str(uuid4()), "start_pump")
 
     assert response.status_code == 404
     assert db.scalar(select(func.count()).select_from(ActuatorExecutionLogRow)) == before

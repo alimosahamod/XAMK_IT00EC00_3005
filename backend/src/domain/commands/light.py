@@ -28,3 +28,11 @@ class SetLightLevelCommand(ActuatorCommand):
     def is_allowed(self, context: ActuatorContext) -> bool:
         # Zusaetzlich zu "start" (aus idle) auch erlaubt, wenn das Licht schon laeuft.
         return context.state == "running" or super().is_allowed(context)
+
+
+class SwitchOffLightCommand(ActuatorCommand):
+    # running -> idle; Gegenstueck zu set_light_level. Nur eine neue Klasse + ein Registry-Eintrag.
+    command_type = "switch_off_light"
+    port_command = "off"
+    state_command = "stop"
+    target_state = "idle"

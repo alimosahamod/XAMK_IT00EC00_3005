@@ -8,7 +8,8 @@ import {
 import { ActuatorStateControl, StateBadge } from './ActuatorStateControl'
 import { DeviceFamilySwitcher } from './DeviceFamilySwitcher'
 
-export function DeviceList() {
+// reloadKey: das Dashboard erhoeht ihn nach jedem Command, damit Zustaende aktuell bleiben.
+export function DeviceList({ reloadKey = 0 }: { reloadKey?: number }) {
   const [family, setFamily] = useState<DeviceFamily>('simulation')
   const [devices, setDevices] = useState<DeviceDto[]>([])
   const [loading, setLoading] = useState(true)
@@ -32,7 +33,7 @@ export function DeviceList() {
     return () => {
       active = false
     }
-  }, [family])
+  }, [family, reloadKey])
 
   // Nach einem erfolgreichen Wechsel nur dieses eine Geraet in der Liste ersetzen.
   function replaceDevice(updated: DeviceDto) {

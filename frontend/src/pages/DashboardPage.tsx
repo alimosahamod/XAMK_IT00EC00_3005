@@ -1,6 +1,8 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { ExecutionLog } from '../components/actuators/ExecutionLog'
 import { StrategyPanel } from '../components/automation/StrategyPanel'
+import { ActuatorControls } from '../components/commands/ActuatorControls'
+import { CommandHistory } from '../components/commands/CommandHistory'
 import { LocationConfigWizard } from '../components/config/LocationConfigWizard'
 import { DeviceList } from '../components/devices/DeviceList'
 import { OverviewPanel } from '../components/overview/OverviewPanel'
@@ -14,8 +16,8 @@ interface Section {
 }
 
 // Stable element ids so later phases can target and fill each section.
-// Overview, sensors, devices, configuration, automation and controls (execution log) are real
-// features now, so they are no longer placeholders here.
+// Overview, sensors, devices, configuration, automation, controls, command history and the
+// execution log are real features now, so they are no longer placeholders here.
 const sections: Section[] = [
   {
     id: 'events',
@@ -26,6 +28,10 @@ const sections: Section[] = [
 ]
 
 export function DashboardPage() {
+  // Steigt nach jedem Command, damit Devices, Historie und Execution-Log neu laden.
+  const [commandsSent, setCommandsSent] = useState(0)
+  const onCommandDone = () => setCommandsSent((n) => n + 1)
+
   return (
     <div className="space-y-6">
       <div>
@@ -38,10 +44,12 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <OverviewPanel />
         <SensorList />
-        <DeviceList />
+        <DeviceList reloadKey={commandsSent} />
         <LocationConfigWizard />
         <StrategyPanel />
-        <ExecutionLog />
+        <ActuatorControls onCommandDone={onCommandDone} />
+        <CommandHistory reloadKey={commandsSent} />
+        <ExecutionLog reloadKey={commandsSent} />
         {sections.map((section) => (
           <PlaceholderCard key={section.id} section={section} />
         ))}

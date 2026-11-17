@@ -19,9 +19,3 @@ class ExecutionDto(BaseModel):
     message: str | None = Field(default=None, examples=["Max run time exceeded"])
     created_at: datetime
 
-
-class ApplyRequestDto(BaseModel):
-    """Body fuer POST /api/actuators/{id}/apply (Demo bis Phase 10 Command)."""
-
-    command: str = Field(examples=["on"])
-    payload: dict = Field(default_factory=dict, examples=[{"duration_s": 30}])

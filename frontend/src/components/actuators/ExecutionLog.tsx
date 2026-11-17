@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import {
-  applyActuatorCommand,
   fetchDevices,
   fetchExecutions,
   type DeviceDto,
@@ -10,19 +9,18 @@ import {
 /**
  * Execution-Log aus actuator_execution_log.
  *
- * Das Panel kennt keine Policies. Es schickt nur einen Demo-Befehl ans Backend
- * und zeigt danach, was der Decorator-Stapel ins Log geschrieben hat.
+ * Das Panel kennt keine Policies. Es zeigt nur, was der Decorator-Stapel ins Log
+ * geschrieben hat. Befehle kommen seit Phase 10 aus den Controls (Command);
+ * `reloadKey` steigt nach jedem gesendeten Befehl.
  */
-export function ExecutionLog() {
+export function ExecutionLog({ reloadKey }: { reloadKey: number }) {
   const [executions, setExecutions] = useState<ExecutionDto[]>([])
   const [actuators, setActuators] = useState<DeviceDto[]>([])
-  const [selectedId, setSelectedId] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
-  // Jede Erhoehung laedt Log und Aktuatoren neu (Refresh-Button, nach "Send").
-  const [reloadKey, setReloadKey] = useState(0)
-  const refresh = () => setReloadKey((key) => key + 1)
+  // Refresh-Button: laedt Log und Aktuatoren neu.
+  const [localKey, setLocalKey] = useState(0)
+  const refresh = () => setLocalKey((key) => key + 1)
 
   useEffect(() => {
     let active = true
@@ -32,8 +30,6 @@ export function ExecutionLog() {
         setError(null)
         setExecutions(rows)
         setActuators(devices)
-        // Ersten Aktuator vorauswaehlen, damit "Send" sofort funktioniert.
-        setSelectedId((current) => current || devices[0]?.id || '')
       })
       .catch((err) => {
         if (active) setError(err instanceof Error ? err.message : 'Could not load executions.')
@@ -44,20 +40,7 @@ export function ExecutionLog() {
     return () => {
       active = false
     }
-  }, [reloadKey])
-
-  async function handleSend() {
-    if (!selectedId) return
-    setNotice(null)
-    try {
-      await applyActuatorCommand(selectedId, 'on')
-      setNotice('Command applied.')
-    } catch (err) {
-      // Blockiert (409): die Zeile mit success=false steht trotzdem im Log.
-      setNotice(err instanceof Error ? `Blocked: ${err.message}` : 'Command failed.')
-    }
-    refresh()
-  }
+  }, [reloadKey, localKey])
 
   // Geraete-id -> Name, damit die Tabelle lesbar bleibt.
   const nameOf = (deviceId: string) =>
@@ -65,7 +48,7 @@ export function ExecutionLog() {
 
   return (
     <section
-      id="controls"
+      id="executions"
       className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:col-span-2 dark:border-slate-800 dark:bg-slate-900"
     >
       <div className="flex items-center justify-between">
@@ -75,38 +58,18 @@ export function ExecutionLog() {
         </span>
       </div>
       <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-        Every actuator command goes through logging → maxRunTime → simulation. Blocked attempts are logged too.
+        Every command that passes the state guard goes through logging → maxRunTime → simulation. Blocked attempts are logged too.
       </p>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-        <select
-          value={selectedId}
-          onChange={(e) => setSelectedId(e.target.value)}
-          className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1.5 dark:border-slate-700 dark:bg-slate-950"
-        >
-          {actuators.length === 0 && <option value="">No actuators</option>}
-          {actuators.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.display_name} ({d.state})
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={handleSend}
-          disabled={!selectedId}
-          className="rounded-lg bg-sky-600 px-3 py-1.5 font-medium text-white hover:bg-sky-700 disabled:opacity-60"
-        >
-          Send "on"
-        </button>
+      <div className="mt-3">
         <button
           onClick={refresh}
-          className="rounded-lg border border-slate-300 px-3 py-1.5 font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
         >
           Refresh
         </button>
       </div>
 
-      {notice && <p className="mt-2 text-xs text-slate-500">{notice}</p>}
       {error && (
         <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
           {error}

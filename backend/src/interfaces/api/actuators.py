@@ -1,14 +1,12 @@
-from uuid import UUID
-
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from application.actuators.dto import ApplyRequestDto, ExecutionDto
+from application.actuators.dto import ExecutionDto
 from application.actuators.execution_service import ActuatorExecutionService
-from domain.actuators.errors import PolicyViolationError
-from domain.devices.errors import DeviceNotFoundError
 from infrastructure.db import get_db
 
+# Phase 10: der Demo-Endpunkt POST /{device_id}/apply ist entfernt. Aktuatoren werden
+# nur noch ueber POST /api/commands gesteuert (Command -> State-Guard -> dekorierter Port).
 router = APIRouter(prefix="/api/actuators", tags=["actuators"])
 
 
@@ -23,28 +21,3 @@ def list_executions(
 ) -> list[ExecutionDto]:
     """Execution-Log: jeder Versuch, auch blockierte (success=false)."""
     return service.list_executions(limit)
-
-
-@router.post(
-    "/{device_id}/apply",
-    status_code=status.HTTP_204_NO_CONTENT,
-    responses={
-        404: {"description": "Actuator not found"},
-        409: {"description": "Blocked by a policy decorator (e.g. maxRunTime)"},
-    },
-)
-def apply_command(
-    device_id: UUID,
-    body: ApplyRequestDto,
-    service: ActuatorExecutionService = Depends(get_service),
-) -> None:
-    """Schickt einen Befehl durch den dekorierten Port (Demo; ab Phase 10 ueber Command).
-
-    Der Router enthaelt keine Policy-Pruefung. Er uebersetzt nur Fehler in HTTP.
-    """
-    try:
-        service.apply(device_id, body.command, body.payload)
-    except DeviceNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
-    except PolicyViolationError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))

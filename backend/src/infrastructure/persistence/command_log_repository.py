@@ -1,12 +1,13 @@
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from infrastructure.persistence.models import CommandLogRow
 
 
 class CommandLogRepository:
-    """Schreibt Befehlsversuche in `command_log` (Phase 10)."""
+    """Schreibt und liest Befehlsversuche in `command_log` (Phase 10)."""
 
     def __init__(self, db: Session):
         self._db = db
@@ -24,3 +25,8 @@ class CommandLogRepository:
             )
         )
         self._db.commit()
+
+    def list_recent(self, limit: int = 50) -> list[CommandLogRow]:
+        # Neueste Befehle zuerst - so zeigt das Dashboard die Historie an.
+        query = select(CommandLogRow).order_by(CommandLogRow.created_at.desc()).limit(limit)
+        return list(self._db.scalars(query))

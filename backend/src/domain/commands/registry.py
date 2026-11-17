@@ -3,13 +3,14 @@ from uuid import UUID
 from domain.actuators.ports import ActuatorPort
 from domain.commands.base import ActuatorCommand, ActuatorStateStore
 from domain.commands.errors import InvalidCommandError
-from domain.commands.light import SetLightLevelCommand
+from domain.commands.light import SetLightLevelCommand, SwitchOffLightCommand
 from domain.commands.pump import StartPumpCommand, StopPumpCommand
 
 # Registry: command_type -> Klasse. Ein neuer Befehl = neue Klasse + ein Eintrag hier,
 # statt einer if/elif-Kette ueber alle Befehlsnamen.
 COMMANDS: dict[str, type[ActuatorCommand]] = {
-    cls.command_type: cls for cls in (StartPumpCommand, StopPumpCommand, SetLightLevelCommand)
+    cls.command_type: cls
+    for cls in (StartPumpCommand, StopPumpCommand, SetLightLevelCommand, SwitchOffLightCommand)
 }
 
 

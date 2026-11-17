@@ -15,7 +15,7 @@ Each rule is its own small class that implements the same ActuatorPort as the re
 | Decorator base | ActuatorDecorator: implements ActuatorPort, holds `_inner`, collects policy names |
 | Concrete decorators | LoggingActuatorDecorator ("logging"), MaxRunTimeActuatorDecorator ("maxRunTime") |
 | Composition root | build_actuator(db) in application/actuators/actuator_chain.py |
-| Client | ActuatorExecutionService, called by POST /api/actuators/{id}/apply (Phase 10: Command) |
+| Client | Since Phase 10 the actuator commands (StartPumpCommand, …), run by CommandInvoker via POST /api/commands |
 
 ## Wrapping and order
 
@@ -49,11 +49,11 @@ LoggingActuatorDecorator calls the inner layer inside try/except. On success it 
 
 ## API and UI
 
-GET /api/actuators/executions?limit=20 returns the newest rows as `{ id, device_id, success, policy_applied, message, created_at }`. POST /api/actuators/{device_id}/apply is a demo route until Phase 10. It returns 204 on success, 409 when a policy blocks (the row is already written), and 404 for unknown devices. The router contains no policy checks; it only translates errors to HTTP.
+GET /api/actuators/executions?limit=20 returns the newest rows as `{ id, device_id, success, policy_applied, message, created_at }`. The Phase 9 demo route POST /api/actuators/{device_id}/apply was removed in Phase 10. Commands now reach the stack only through POST /api/commands, after the state guard (see command.md). A blocked attempt shows up as success=false here and as status=failed in command_log.
 
 The dashboard panel "Execution log" (frontend/src/components/actuators/ExecutionLog.tsx) lists time, device, a success/failed badge, policies and message, with an empty state.
 
-Demo: set an actuator to running, let it run longer than the limit (or set ACTUATOR_MAX_RUN_TIME_S=10 in .env and wait 10 seconds), click Send "on" and the table shows a failed row with maxRunTime, logging.
+Demo: set an actuator to running, let it run longer than the limit (or set ACTUATOR_MAX_RUN_TIME_S=10 in .env and wait 10 seconds), click "Stop pump" in Controls and the table shows a failed row with maxRunTime, logging.
 
 ## Decorator vs inheritance
 
