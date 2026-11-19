@@ -5,13 +5,15 @@ from application.commands.dto import CommandLogDto, CommandRequestDto, CommandRe
 from application.commands.service import CommandService
 from domain.commands.errors import InvalidCommandError
 from domain.devices.errors import DeviceNotFoundError
+from domain.events.bus import EventBus
 from infrastructure.db import get_db
+from interfaces.api.event_bus import get_event_bus
 
 router = APIRouter(prefix="/api/commands", tags=["commands"])
 
 
-def get_service(db: Session = Depends(get_db)) -> CommandService:
-    return CommandService.from_session(db)
+def get_service(db: Session = Depends(get_db), bus: EventBus = Depends(get_event_bus)) -> CommandService:
+    return CommandService.from_session(db, bus)
 
 
 @router.post(

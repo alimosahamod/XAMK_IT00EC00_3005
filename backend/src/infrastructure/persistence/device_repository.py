@@ -115,6 +115,9 @@ class DeviceRepository:
             device_family=device.device_family,
             display_name=device.display_name,
             default_config=device.default_config,
+            location_id=device.location_id,
+            zone_id=device.zone_id,
+            tracking_enabled=device.tracking_enabled,
         )
         # Phase 8: ein neuer Aktuator bekommt sofort seine Zustandszeile,
         # im selben Commit wie das Geraet selbst.
@@ -133,6 +136,9 @@ class DeviceRepository:
             display_name=row.display_name or row.device_type,
             default_config=row.default_config,
             state=row.actuator_state.state if row.actuator_state else None,
+            location_id=row.location_id,
+            zone_id=row.zone_id,
+            tracking_enabled=row.tracking_enabled,
         )
 
     @staticmethod

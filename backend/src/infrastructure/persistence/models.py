@@ -79,6 +79,20 @@ class DeviceRow(Base):
         nullable=True,
     )
 
+    # Phase 11: optionale Zone. Nullable + SET NULL wie location_id: ein nicht
+    # zugewiesenes Geraet hat keine Zone, und es wird auch keine erfunden.
+    zone_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("zones.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    # Phase 11: nur bei true veroeffentlicht der Ingest `reading.created`.
+    # Default true, damit bestehende Geraete weiter Events ausloesen.
+    tracking_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("true")
+    )
+
     # Phase 8: Zustand des Aktuators (Sensoren haben keine Zeile).
     # lazy="selectin": die Geraeteliste laedt alle Zustaende mit einer
     # zusaetzlichen Abfrage statt einer Abfrage pro Geraet (kein N+1).
@@ -342,6 +356,62 @@ class CommandLogRow(Base):
     __table_args__ = (
         # Die Historie wird immer "neueste zuerst" gelesen.
         Index("ix_command_log_created_at", "created_at"),
+    )
+
+
+class AlertRow(Base):
+    """ORM-Zeile fuer einen Alarm im Event-Feed (Phase 11, Observer).
+
+    Geschrieben wird sie nur vom AlertPersistenceSubscriber, nie direkt von
+    Ingest, CommandService oder Zustandswechsel - die veroeffentlichen Events.
+    """
+
+    __tablename__ = "alerts"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+
+    # Alle drei FKs nullable + SET NULL: ein Alarm ist Historie und soll das
+    # Loeschen von Standort, Zone oder Geraet ueberleben (anders als CASCADE).
+    location_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("locations.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    zone_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("zones.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    device_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("devices.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    # "info" | "warning" | "critical". Gueltige Werte prueft der Code, nicht die DB.
+    severity: Mapped[str] = mapped_column(String(16), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+
+    # Event-Name, z.B. "threshold.crossed", "command.failed", "state.changed".
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    # "active" | "resolved" (Resolve kommt erst in Phase 13).
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default=text("'active'")
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
+    )
+    acknowledged_at: Mapped[datetime | None] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        # Der Feed liest "neueste zuerst".
+        Index("ix_alerts_created_at", "created_at"),
     )
 
 

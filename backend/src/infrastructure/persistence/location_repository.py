@@ -68,6 +68,13 @@ class LocationRepository:
     def exists(self, location_id: UUID) -> bool:
         return self._db.get(LocationRow, location_id) is not None
 
+    # --- Phase 11: Schwellwert fuer den MoistureThresholdSubscriber -------
+
+    def get_zone_threshold_low(self, zone_id: UUID) -> float | None:
+        """moisture_threshold_low der Zone, oder None wenn es die Zone nicht gibt."""
+        row = self._db.get(ZoneRow, zone_id)
+        return None if row is None else float(row.moisture_threshold_low)
+
     def list_zone_thresholds(self, location_id: UUID) -> list[tuple[str, float, float]]:
         """Name, low und high jeder Zone - nur Zahlen, keine ZoneRow."""
         stmt = (

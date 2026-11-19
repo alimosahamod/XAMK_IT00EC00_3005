@@ -9,9 +9,11 @@ from application.devices.mappers import device_to_dto, devices_to_dtos
 from application.devices.state_service import ActuatorStateService
 from domain.actuators.errors import IllegalTransitionError
 from domain.devices.errors import DeviceNotFoundError
+from domain.events.bus import EventBus
 from infrastructure.db import get_db
 from infrastructure.persistence.actuator_state_repository import ActuatorStateRepository
 from infrastructure.persistence.device_repository import DeviceRepository
+from interfaces.api.event_bus import get_event_bus
 
 router = APIRouter(prefix="/api/devices", tags=["devices"])
 
@@ -20,8 +22,10 @@ def get_service(db: Session = Depends(get_db)) -> DeviceFamilyService:
     return DeviceFamilyService(DeviceRepository(db))
 
 
-def get_state_service(db: Session = Depends(get_db)) -> ActuatorStateService:
-    return ActuatorStateService(DeviceRepository(db), ActuatorStateRepository(db))
+def get_state_service(
+    db: Session = Depends(get_db), bus: EventBus = Depends(get_event_bus)
+) -> ActuatorStateService:
+    return ActuatorStateService(DeviceRepository(db), ActuatorStateRepository(db), bus)
 
 
 @router.get("", response_model=list[DeviceDto])

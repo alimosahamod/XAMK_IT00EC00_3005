@@ -12,6 +12,7 @@ from domain.commands.invoker import CommandInvoker
 from domain.commands.light import SetLightLevelCommand, SwitchOffLightCommand
 from domain.commands.pump import StartPumpCommand, StopPumpCommand
 from domain.commands.registry import create_command
+from domain.events.bus import EventBus
 from infrastructure.adapters.actuators.simulation import SimulationActuatorAdapter
 from infrastructure.db import engine
 from infrastructure.persistence.models import ActuatorStateRow, CommandLogRow, DeviceRow
@@ -168,7 +169,7 @@ def log_rows(db, device_id) -> list[CommandLogRow]:
 def test_start_pump_transitions_to_running(db):
     device_id = new_actuator(db, "idle")
 
-    result = CommandService.from_session(db).submit("start_pump", device_id)
+    result = CommandService.from_session(db, EventBus()).submit("start_pump", device_id)
 
     assert result.status == "success"
     assert stored_state(db, device_id) == "running"
@@ -179,7 +180,7 @@ def test_start_pump_transitions_to_running(db):
 def test_illegal_command_rejected_logged(db):
     device_id = new_actuator(db, "maintenance")
 
-    result = CommandService.from_session(db).submit("start_pump", device_id)
+    result = CommandService.from_session(db, EventBus()).submit("start_pump", device_id)
 
     assert result.status == "rejected"
     assert stored_state(db, device_id) == "maintenance"  # actuator_states unveraendert

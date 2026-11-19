@@ -8,11 +8,13 @@ from application.readings.dto import ReadingDto
 from application.readings.service import ReadingService
 from application.sensors.service import SensorService
 from domain.devices.errors import DeviceNotFoundError
+from domain.events.bus import EventBus
 from domain.sensors.errors import SensorReadError
 from infrastructure.adapters.sensors.selector import select_sensor_adapter
 from infrastructure.db import get_db
 from infrastructure.persistence.device_repository import DeviceRepository
 from infrastructure.persistence.reading_repository import ReadingRepository
+from interfaces.api.event_bus import get_event_bus
 
 router = APIRouter(prefix="/api/sensors", tags=["sensors"])
 
@@ -54,9 +56,12 @@ def create_sensor(
 # --- Phase 5: Messwerte lesen (Adapter) ------------------------------------
 
 
-def get_reading_service(db: Session = Depends(get_db)) -> ReadingService:
+def get_reading_service(
+    db: Session = Depends(get_db), bus: EventBus = Depends(get_event_bus)
+) -> ReadingService:
     # Hier wird der Selector eingesteckt; der Router selbst kennt keine Adapter.
-    return ReadingService(DeviceRepository(db), ReadingRepository(db), select_sensor_adapter)
+    # Phase 11: der Bus kommt aus der Composition Root (event_bus.py).
+    return ReadingService(DeviceRepository(db), ReadingRepository(db), select_sensor_adapter, bus)
 
 
 @router.post(
