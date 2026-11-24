@@ -60,7 +60,6 @@ def get_reading_service(
     db: Session = Depends(get_db), bus: EventBus = Depends(get_event_bus)
 ) -> ReadingService:
     # Hier wird der Selector eingesteckt; der Router selbst kennt keine Adapter.
-    # Phase 11: der Bus kommt aus der Composition Root (event_bus.py).
     return ReadingService(DeviceRepository(db), ReadingRepository(db), select_sensor_adapter, bus)
 
 

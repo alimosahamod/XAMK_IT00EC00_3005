@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import { ExecutionLog } from '../components/actuators/ExecutionLog'
+import { EventFeed } from '../components/alerts/EventFeed'
 import { StrategyPanel } from '../components/automation/StrategyPanel'
 import { ActuatorControls } from '../components/commands/ActuatorControls'
 import { CommandHistory } from '../components/commands/CommandHistory'
@@ -8,25 +9,8 @@ import { DeviceList } from '../components/devices/DeviceList'
 import { OverviewPanel } from '../components/overview/OverviewPanel'
 import { SensorList } from '../features/sensors/SensorList'
 
-interface Section {
-  id: string
-  title: string
-  description: string
-  phase: string
-}
-
-// Stable element ids so later phases can target and fill each section.
-// Overview, sensors, devices, configuration, automation, controls, command history and the
-// execution log are real features now, so they are no longer placeholders here.
-const sections: Section[] = [
-  {
-    id: 'events',
-    title: 'Events',
-    description: 'Alerts and history of what the greenhouse did.',
-    phase: 'Later phase',
-  },
-]
-
+// Every section is a real feature now. Each panel keeps a stable element id
+// (#overview, #events, ...) so later phases can target it.
 export function DashboardPage() {
   // Steigt nach jedem Command, damit Devices, Historie und Execution-Log neu laden.
   const [commandsSent, setCommandsSent] = useState(0)
@@ -37,7 +21,7 @@ export function DashboardPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
         <p className="mt-1 text-slate-600 dark:text-slate-400">
-          Placeholder sections for the smart greenhouse. Later phases fill these in.
+          Sensors, actuators, automation and alerts of the smart greenhouse.
         </p>
       </div>
 
@@ -50,38 +34,9 @@ export function DashboardPage() {
         <ActuatorControls onCommandDone={onCommandDone} />
         <CommandHistory reloadKey={commandsSent} />
         <ExecutionLog reloadKey={commandsSent} />
-        {sections.map((section) => (
-          <PlaceholderCard key={section.id} section={section} />
-        ))}
+        {/* Phase 11: pollt GET /api/alerts alle 5 Sekunden. */}
+        <EventFeed />
       </div>
     </div>
-  )
-}
-
-function PlaceholderCard({ section }: { section: Section }) {
-  return (
-    <section
-      id={section.id}
-      className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
-    >
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">{section.title}</h2>
-        <Badge>{section.phase}</Badge>
-      </div>
-      <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-        {section.description}
-      </p>
-      <div className="mt-4 flex flex-1 items-center justify-center rounded-lg border border-dashed border-slate-300 py-8 text-sm text-slate-400 dark:border-slate-700 dark:text-slate-500">
-        No data yet
-      </div>
-    </section>
-  )
-}
-
-function Badge({ children }: { children: ReactNode }) {
-  return (
-    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-      {children}
-    </span>
   )
 }

@@ -387,3 +387,36 @@ export async function fetchCommands(limit = 50): Promise<CommandLogDto[]> {
   }
   return response.json();
 }
+
+// --- Phase 11: Alerts (Observer) ---
+
+export type AlertSeverity = 'info' | 'warning' | 'critical';
+
+// Eine Zeile aus `alerts`. Die ids sind null, wenn das Geraet nicht zugewiesen war.
+export interface AlertDto {
+  id: string;
+  location_id: string | null;
+  zone_id: string | null;
+  device_id: string | null;
+  severity: AlertSeverity;
+  message: string;
+  event_type: string;
+  status: 'active' | 'resolved';
+  created_at: string;
+}
+
+// Leere Filter werden nicht mitgeschickt; das Backend liefert dann alle aktiven Alarme.
+export async function fetchAlerts(filters: {
+  location_id?: string;
+  zone_id?: string;
+  limit?: number;
+} = {}): Promise<AlertDto[]> {
+  const params = new URLSearchParams({ status: 'active', limit: String(filters.limit ?? 50) });
+  if (filters.location_id) params.set('location_id', filters.location_id);
+  if (filters.zone_id) params.set('zone_id', filters.zone_id);
+  const response = await fetch(`${API_BASE_URL}/api/alerts?${params}`);
+  if (!response.ok) {
+    throw new Error(await readErrorDetail(response, 'Failed to load alerts'));
+  }
+  return response.json();
+}

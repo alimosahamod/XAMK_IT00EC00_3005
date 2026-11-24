@@ -31,8 +31,6 @@ from infrastructure.persistence.reading_repository import ReadingRepository
 from interfaces.api.event_bus import build_event_bus, get_event_bus
 from main import app
 
-# Phase 11, Step 1 + 2: EventBus, Subscriber und Publish-Sites.
-
 # --- Teil 1: EventBus ohne DB ----------------------------------------------
 
 
@@ -292,3 +290,58 @@ def test_publishers_do_not_import_alert_persistence(path):
     source = (Path(__file__).parent.parent / "src" / path).read_text()
     assert "AlertRepository" not in source
     assert "AlertRow" not in source
+
+
+# --- Teil 3: GET /api/alerts --------------------------------------------------
+
+
+def second_zone(db, zone: ZoneRow) -> ZoneRow:
+    other = ZoneRow(
+        location_id=zone.location_id, name="Bench 2", moisture_threshold_low=0.20, moisture_threshold_high=0.45
+    )
+    db.add(other)
+    db.commit()
+    return other
+
+
+def test_bench_1_alert_is_returned_only_for_its_zone(client, db):
+    zone = bench_1(db)
+    other = second_zone(db, zone)
+    device = new_device(db, zone=zone)
+
+    ingest(db, device.id, 0.10)
+
+    response = client.get(f"/api/alerts?zone_id={zone.id}")
+    assert response.status_code == 200
+    (alert,) = response.json()
+    assert alert["event_type"] == "threshold.crossed"
+    assert alert["zone_id"] == str(zone.id)
+    assert alert["location_id"] == str(zone.location_id)
+    # acknowledged_at ist eine Spalte, aber nicht Teil der Antwort.
+    assert set(alert) == {
+        "id", "location_id", "zone_id", "device_id", "severity", "message", "event_type", "status", "created_at"
+    }
+    # Filter auf eine andere Zone liefert den Alarm nicht.
+    assert client.get(f"/api/alerts?zone_id={other.id}").json() == []
+
+
+def test_alerts_filter_by_location_status_and_since(client, db):
+    zone = bench_1(db)
+    device = new_device(db, zone=zone)
+    ingest(db, device.id, 0.10)
+    ingest(db, device.id, 0.05)
+
+    by_location = client.get(f"/api/alerts?location_id={zone.location_id}").json()
+    assert len(by_location) == 2
+    # Neueste zuerst.
+    assert by_location[0]["created_at"] >= by_location[1]["created_at"]
+
+    assert client.get(f"/api/alerts?location_id={zone.location_id}&status=resolved").json() == []
+    assert len(client.get(f"/api/alerts?location_id={zone.location_id}&status=all").json()) == 2
+    assert client.get(f"/api/alerts?location_id={zone.location_id}&since=2999-01-01T00:00:00Z").json() == []
+
+
+def test_invalid_status_or_limit_is_rejected(client):
+    assert client.get("/api/alerts?status=open").status_code == 400
+    assert client.get("/api/alerts?limit=0").status_code == 422
+    assert client.get("/api/alerts?limit=201").status_code == 422

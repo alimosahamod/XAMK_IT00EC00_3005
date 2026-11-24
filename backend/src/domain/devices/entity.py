@@ -14,7 +14,6 @@ class Device:
     default_config: dict
     # Phase 8: gespeicherter Zustand aus actuator_states, bei Sensoren None.
     state: str | None = None
-    # Phase 11: Zuordnung und Tracking, vom Ingest/Services in Events kopiert.
     # None = nicht zugewiesen; dann bleiben die ids auch im Event None.
     location_id: UUID | None = None
     zone_id: UUID | None = None
